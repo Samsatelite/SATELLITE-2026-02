@@ -44,11 +44,7 @@ export function MultiNumberInput({ entries, onEntriesChange, onAllValid }: Multi
     );
     onEntriesChange(updated);
 
-    // Check if all entries are valid
-    const allValid = updated.every(e => e.isValid);
-    if (allValid && updated.length > 0) {
-      onAllValid(updated);
-    }
+    // Don't auto-advance in bulk mode - user must click Continue button
   };
 
   return (
