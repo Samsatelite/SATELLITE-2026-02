@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { PhoneInput } from '@/components/PhoneInput';
+import { MultiNumberInput, PhoneEntry } from '@/components/MultiNumberInput';
+import { ServiceToggle, ServiceType } from '@/components/ServiceToggle';
 import { PlanSelector } from '@/components/PlanSelector';
 import { PaymentSheet } from '@/components/PaymentSheet';
 import { ProcessingState } from '@/components/ProcessingState';
@@ -15,15 +17,20 @@ import {
   saveTransaction,
 } from '@/lib/transactions';
 import { Button } from '@/components/ui/button';
-import { History } from 'lucide-react';
+import { History, Users, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type AppState = 'input' | 'plans' | 'payment' | 'processing' | 'success';
 
 const Index = () => {
   const [appState, setAppState] = useState<AppState>('input');
+  const [serviceType, setServiceType] = useState<ServiceType>('data');
+  const [isMultiMode, setIsMultiMode] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [network, setNetwork] = useState<NetworkType>(null);
+  const [phoneEntries, setPhoneEntries] = useState<PhoneEntry[]>([
+    { id: crypto.randomUUID(), phone: '', network: null, isValid: false }
+  ]);
   const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
@@ -39,6 +46,16 @@ const Index = () => {
     saveLastNumber(phone);
   }, []);
 
+  const handleMultiValidNumbers = useCallback((entries: PhoneEntry[]) => {
+    // Use the first valid entry's network
+    const firstValid = entries.find(e => e.isValid && e.network);
+    if (firstValid && firstValid.network) {
+      setNetwork(firstValid.network);
+      setAppState('plans');
+      saveLastNumber(entries[0].phone.replace(/\D/g, ''));
+    }
+  }, []);
+
   const handleSelectPlan = useCallback((plan: DataPlan) => {
     setSelectedPlan(plan);
   }, []);
@@ -46,11 +63,15 @@ const Index = () => {
   const handlePayNow = useCallback(() => {
     if (!selectedPlan || !network) return;
     
+    // Calculate total for multi-number mode
+    const count = isMultiMode ? phoneEntries.filter(e => e.isValid).length : 1;
+    const totalPrice = selectedPlan.price * count;
+    
     const reference = generateReference();
-    const details = generatePaymentDetails(selectedPlan.price, reference);
+    const details = generatePaymentDetails(totalPrice, reference);
     setPaymentDetails(details);
     setAppState('payment');
-  }, [selectedPlan, network]);
+  }, [selectedPlan, network, isMultiMode, phoneEntries]);
 
   const handleConfirmPayment = useCallback(() => {
     if (!selectedPlan || !network || !paymentDetails) return;
@@ -59,13 +80,17 @@ const Index = () => {
 
     // Simulate payment verification and VTU delivery
     setTimeout(() => {
+      const targetPhone = isMultiMode 
+        ? phoneEntries.filter(e => e.isValid).map(e => e.phone.replace(/\D/g, '')).join(', ')
+        : phoneNumber.replace(/\D/g, '');
+
       const transaction: Transaction = {
         id: crypto.randomUUID(),
         reference: paymentDetails.reference,
-        phoneNumber: phoneNumber.replace(/\D/g, ''),
+        phoneNumber: targetPhone,
         network,
         plan: selectedPlan,
-        amount: selectedPlan.price,
+        amount: paymentDetails.amount,
         status: 'success',
         createdAt: new Date(),
         completedAt: new Date(),
@@ -76,7 +101,7 @@ const Index = () => {
       saveTransaction(transaction);
       setAppState('success');
     }, 2000);
-  }, [selectedPlan, network, paymentDetails, phoneNumber]);
+  }, [selectedPlan, network, paymentDetails, phoneNumber, isMultiMode, phoneEntries]);
 
   const handleCancelPayment = useCallback(() => {
     setAppState('plans');
@@ -90,12 +115,24 @@ const Index = () => {
     setSelectedPlan(null);
     setPaymentDetails(null);
     setCurrentTransaction(null);
+    setPhoneEntries([{ id: crypto.randomUUID(), phone: '', network: null, isValid: false }]);
+    setIsMultiMode(false);
   }, []);
 
   const handleBackToInput = useCallback(() => {
     setAppState('input');
     setSelectedPlan(null);
   }, []);
+
+  const toggleMultiMode = () => {
+    setIsMultiMode(!isMultiMode);
+    if (!isMultiMode) {
+      // Switching to multi mode - reset entries
+      setPhoneEntries([{ id: crypto.randomUUID(), phone: '', network: null, isValid: false }]);
+    }
+  };
+
+  const validEntriesCount = phoneEntries.filter(e => e.isValid).length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -116,12 +153,65 @@ const Index = () => {
       <main className="flex-1 container max-w-md mx-auto px-4 py-8">
         {/* Phone input state */}
         {appState === 'input' && (
-          <div className="pt-16">
-            <PhoneInput
-              value={phoneNumber}
-              onChange={handlePhoneChange}
-              onValidNumber={handleValidNumber}
-            />
+          <div className="space-y-6">
+            {/* Service toggle */}
+            <ServiceToggle value={serviceType} onChange={setServiceType} />
+
+            {/* Multi/Single toggle */}
+            <div className="flex justify-center">
+              <button
+                onClick={toggleMultiMode}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all",
+                  isMultiMode 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isMultiMode ? (
+                  <>
+                    <Users className="w-4 h-4" />
+                    Multiple numbers
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4" />
+                    Single number
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Phone input(s) */}
+            <div className="pt-8">
+              {isMultiMode ? (
+                <MultiNumberInput
+                  entries={phoneEntries}
+                  onEntriesChange={setPhoneEntries}
+                  onAllValid={handleMultiValidNumbers}
+                />
+              ) : (
+                <PhoneInput
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  onValidNumber={handleValidNumber}
+                />
+              )}
+            </div>
+
+            {/* Continue button for multi-mode */}
+            {isMultiMode && validEntriesCount > 0 && (
+              <div className="pt-4">
+                <Button
+                  onClick={() => handleMultiValidNumbers(phoneEntries.filter(e => e.isValid))}
+                  variant="primary"
+                  size="xl"
+                  className="w-full"
+                >
+                  Continue with {validEntriesCount} number{validEntriesCount > 1 ? 's' : ''}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -150,6 +240,11 @@ const Index = () => {
               selectedPlan ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
             )}>
               <div className="container max-w-md mx-auto">
+                {isMultiMode && validEntriesCount > 1 && selectedPlan && (
+                  <p className="text-center text-sm text-muted-foreground mb-2">
+                    {formatPrice(selectedPlan.price)} × {validEntriesCount} numbers
+                  </p>
+                )}
                 <Button
                   onClick={handlePayNow}
                   disabled={!selectedPlan}
@@ -157,7 +252,9 @@ const Index = () => {
                   size="xl"
                   className="w-full"
                 >
-                  Pay {selectedPlan && formatPrice(selectedPlan.price)}
+                  Pay {selectedPlan && formatPrice(
+                    isMultiMode ? selectedPlan.price * validEntriesCount : selectedPlan.price
+                  )}
                 </Button>
               </div>
             </div>
