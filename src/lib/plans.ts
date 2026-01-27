@@ -7,7 +7,14 @@ export interface DataPlan {
   sizeValue: number; // in MB for sorting
   price: number;
   validity: string;
-  type: 'SME' | 'Corporate' | 'Gifting';
+  type: 'SME' | 'Corporate' | 'Gifting' | 'Airtime';
+  popular?: boolean;
+}
+
+export interface AirtimePlan {
+  id: string;
+  network: Exclude<NetworkType, null>;
+  amount: number;
   popular?: boolean;
 }
 
@@ -42,8 +49,47 @@ export const dataPlans: DataPlan[] = [
   { id: '9mobile-5gb', network: '9mobile', size: '5GB', sizeValue: 5120, price: 1200, validity: '30 days', type: 'SME' },
 ];
 
+// Airtime Recharge Options
+export const airtimePlans: AirtimePlan[] = [
+  // MTN Airtime
+  { id: 'mtn-airtime-50', network: 'mtn', amount: 50 },
+  { id: 'mtn-airtime-100', network: 'mtn', amount: 100, popular: true },
+  { id: 'mtn-airtime-200', network: 'mtn', amount: 200 },
+  { id: 'mtn-airtime-500', network: 'mtn', amount: 500 },
+  { id: 'mtn-airtime-1000', network: 'mtn', amount: 1000 },
+  { id: 'mtn-airtime-2000', network: 'mtn', amount: 2000 },
+  
+  // Airtel Airtime
+  { id: 'airtel-airtime-50', network: 'airtel', amount: 50 },
+  { id: 'airtel-airtime-100', network: 'airtel', amount: 100, popular: true },
+  { id: 'airtel-airtime-200', network: 'airtel', amount: 200 },
+  { id: 'airtel-airtime-500', network: 'airtel', amount: 500 },
+  { id: 'airtel-airtime-1000', network: 'airtel', amount: 1000 },
+  { id: 'airtel-airtime-2000', network: 'airtel', amount: 2000 },
+  
+  // Glo Airtime
+  { id: 'glo-airtime-50', network: 'glo', amount: 50 },
+  { id: 'glo-airtime-100', network: 'glo', amount: 100, popular: true },
+  { id: 'glo-airtime-200', network: 'glo', amount: 200 },
+  { id: 'glo-airtime-500', network: 'glo', amount: 500 },
+  { id: 'glo-airtime-1000', network: 'glo', amount: 1000 },
+  { id: 'glo-airtime-2000', network: 'glo', amount: 2000 },
+  
+  // 9mobile Airtime
+  { id: '9mobile-airtime-50', network: '9mobile', amount: 50 },
+  { id: '9mobile-airtime-100', network: '9mobile', amount: 100, popular: true },
+  { id: '9mobile-airtime-200', network: '9mobile', amount: 200 },
+  { id: '9mobile-airtime-500', network: '9mobile', amount: 500 },
+  { id: '9mobile-airtime-1000', network: '9mobile', amount: 1000 },
+  { id: '9mobile-airtime-2000', network: '9mobile', amount: 2000 },
+];
+
 export function getPlansByNetwork(network: Exclude<NetworkType, null>): DataPlan[] {
   return dataPlans.filter(plan => plan.network === network);
+}
+
+export function getAirtimeByNetwork(network: Exclude<NetworkType, null>): AirtimePlan[] {
+  return airtimePlans.filter(plan => plan.network === network);
 }
 
 export function formatPrice(amount: number): string {

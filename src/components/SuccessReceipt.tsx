@@ -11,12 +11,15 @@ interface SuccessReceiptProps {
 
 export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptProps) {
   const network = networks[transaction.network];
+  const isAirtime = !('size' in transaction.plan);
+  const planLabel = isAirtime ? 'Airtime' : (transaction.plan as { size: string }).size;
 
   const shareToWhatsApp = () => {
+    const typeLabel = isAirtime ? 'Airtime' : 'Data';
     const message = encodeURIComponent(
-      `✅ Data Purchase Successful!\n\n` +
+      `✅ ${typeLabel} Purchase Successful!\n\n` +
       `📱 ${transaction.phoneNumber}\n` +
-      `📊 ${transaction.plan.size} (${network.name})\n` +
+      `📊 ${planLabel} (${network.name})\n` +
       `💰 ${formatPrice(transaction.amount)}\n` +
       `🔖 Ref: ${transaction.reference}\n\n` +
       `Powered by Datadome`
@@ -46,9 +49,9 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
 
       {/* Success message */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold tracking-tight">Data Sent!</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{isAirtime ? 'Airtime Sent!' : 'Data Sent!'}</h2>
         <p className="text-muted-foreground mt-1">
-          {transaction.plan.size} delivered to {transaction.phoneNumber}
+          {planLabel} delivered to {transaction.phoneNumber}
         </p>
       </div>
 
@@ -60,8 +63,8 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Data</span>
-          <span className="font-semibold">{transaction.plan.size}</span>
+          <span className="text-sm text-muted-foreground">{isAirtime ? 'Type' : 'Data'}</span>
+          <span className="font-semibold">{planLabel}</span>
         </div>
 
         <div className="flex justify-between items-center">

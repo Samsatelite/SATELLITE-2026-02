@@ -1,21 +1,60 @@
-import { DataPlan, formatPrice, getPlansByNetwork } from '@/lib/plans';
+import { DataPlan, AirtimePlan, formatPrice, getPlansByNetwork, getAirtimeByNetwork } from '@/lib/plans';
 import { NetworkType } from '@/lib/networks';
 import { cn } from '@/lib/utils';
 import { Zap } from 'lucide-react';
+import { ServiceType } from './ServiceToggle';
 
 interface PlanSelectorProps {
   network: Exclude<NetworkType, null>;
-  selectedPlan: DataPlan | null;
-  onSelectPlan: (plan: DataPlan) => void;
+  serviceType: ServiceType;
+  selectedPlan: DataPlan | AirtimePlan | null;
+  onSelectPlan: (plan: DataPlan | AirtimePlan) => void;
 }
 
-export function PlanSelector({ network, selectedPlan, onSelectPlan }: PlanSelectorProps) {
-  const plans = getPlansByNetwork(network);
+export function PlanSelector({ network, serviceType, selectedPlan, onSelectPlan }: PlanSelectorProps) {
+  const dataPlans = getPlansByNetwork(network);
+  const airtimePlans = getAirtimeByNetwork(network);
+
+  if (serviceType === 'airtime') {
+    return (
+      <div className="animate-slide-up">
+        <div className="grid grid-cols-3 gap-2">
+          {airtimePlans.map((plan, index) => (
+            <button
+              key={plan.id}
+              onClick={() => onSelectPlan(plan)}
+              className={cn(
+                "plan-card relative p-4 rounded-lg border text-center press-effect",
+                "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                selectedPlan?.id === plan.id
+                  ? "selected border-primary"
+                  : "border-border bg-card hover:border-muted-foreground/30"
+              )}
+              style={{ animationDelay: `${index * 30}ms` }}
+            >
+              {/* Popular badge */}
+              {plan.popular && (
+                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                  <Zap className="w-2.5 h-2.5" />
+                  HOT
+                </div>
+              )}
+
+              {/* Amount */}
+              <div className="text-lg font-bold tracking-tight">
+                {formatPrice(plan.amount)}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-slide-up">
       <div className="grid grid-cols-3 gap-2">
-        {plans.map((plan, index) => (
+        {dataPlans.map((plan, index) => (
           <button
             key={plan.id}
             onClick={() => onSelectPlan(plan)}

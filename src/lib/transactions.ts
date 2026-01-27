@@ -1,4 +1,4 @@
-import { DataPlan } from './plans';
+import { DataPlan, AirtimePlan } from './plans';
 import { NetworkType } from './networks';
 
 export type TransactionStatus = 'pending' | 'processing' | 'success' | 'failed' | 'refunded';
@@ -8,7 +8,7 @@ export interface Transaction {
   reference: string;
   phoneNumber: string;
   network: Exclude<NetworkType, null>;
-  plan: DataPlan;
+  plan: DataPlan | AirtimePlan;
   amount: number;
   status: TransactionStatus;
   createdAt: Date;
