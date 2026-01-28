@@ -58,13 +58,13 @@ export function formatPhoneNumber(value: string): string {
   // Limit to 11 digits
   const limited = digits.slice(0, 11);
   
-  // Format as 0XXX XXX XXXX
-  if (limited.length <= 4) {
+  // Format as 0XX XXXX XXXX (3-4-4)
+  if (limited.length <= 3) {
     return limited;
   } else if (limited.length <= 7) {
-    return `${limited.slice(0, 4)} ${limited.slice(4)}`;
+    return `${limited.slice(0, 3)} ${limited.slice(3)}`;
   } else {
-    return `${limited.slice(0, 4)} ${limited.slice(4, 7)} ${limited.slice(7)}`;
+    return `${limited.slice(0, 3)} ${limited.slice(3, 7)} ${limited.slice(7)}`;
   }
 }
 

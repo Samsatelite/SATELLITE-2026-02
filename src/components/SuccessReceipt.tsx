@@ -1,8 +1,10 @@
-import { Transaction, formatTransactionId } from '@/lib/transactions';
+import { useRef } from 'react';
+import { Transaction } from '@/lib/transactions';
 import { formatPrice } from '@/lib/plans';
 import { networks } from '@/lib/networks';
-import { Check, Share2, RotateCcw } from 'lucide-react';
+import { Share2, RotateCcw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import html2canvas from 'html2canvas';
 
 interface SuccessReceiptProps {
   transaction: Transaction;
@@ -10,11 +12,51 @@ interface SuccessReceiptProps {
 }
 
 export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptProps) {
+  const receiptRef = useRef<HTMLDivElement>(null);
   const network = networks[transaction.network];
   const isAirtime = !('size' in transaction.plan);
   const planLabel = isAirtime ? 'Airtime' : (transaction.plan as { size: string }).size;
 
-  const shareToWhatsApp = () => {
+  const generateReceiptImage = async (): Promise<Blob | null> => {
+    if (!receiptRef.current) return null;
+    
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/png');
+      });
+    } catch (error) {
+      console.error('Failed to generate receipt image:', error);
+      return null;
+    }
+  };
+
+  const shareReceipt = async () => {
+    const blob = await generateReceiptImage();
+    
+    if (blob && navigator.share && navigator.canShare) {
+      try {
+        const file = new File([blob], `datadome-receipt-${transaction.reference}.png`, { type: 'image/png' });
+        
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Datadome Receipt',
+            text: `${isAirtime ? 'Airtime' : 'Data'} Purchase Receipt`,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Share failed:', error);
+      }
+    }
+    
+    // Fallback to WhatsApp text share
     const typeLabel = isAirtime ? 'Airtime' : 'Data';
     const message = encodeURIComponent(
       `✅ ${typeLabel} Purchase Successful!\n\n` +
@@ -25,6 +67,20 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
       `Powered by Datadome`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  const downloadReceipt = async () => {
+    const blob = await generateReceiptImage();
+    if (!blob) return;
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `datadome-receipt-${transaction.reference}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -55,8 +111,15 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
         </p>
       </div>
 
-      {/* Receipt card */}
-      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+      {/* Receipt card - this is what gets captured as image */}
+      <div ref={receiptRef} className="bg-card border border-border rounded-xl p-5 space-y-4">
+        {/* Logo */}
+        <div className="text-center pb-2 border-b border-border">
+          <span className="text-lg font-bold tracking-tighter">
+            datadome<span className="text-primary">.</span>
+          </span>
+        </div>
+
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Amount</span>
           <span className="font-bold text-lg">{formatPrice(transaction.amount)}</span>
@@ -104,18 +167,33 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
             })}
           </span>
         </div>
+
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">Status</span>
+          <span className="text-sm font-medium text-success">✓ Successful</span>
+        </div>
       </div>
 
       {/* Actions */}
       <div className="mt-6 space-y-3">
-        <Button
-          onClick={shareToWhatsApp}
-          variant="outline"
-          className="w-full h-12"
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          Share to WhatsApp
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={shareReceipt}
+            variant="outline"
+            className="flex-1 h-12"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
+          <Button
+            onClick={downloadReceipt}
+            variant="outline"
+            className="flex-1 h-12"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Save
+          </Button>
+        </div>
 
         <Button
           onClick={onNewPurchase}

@@ -1,12 +1,14 @@
-import { useState, useCallback } from 'react';
-import { PhoneInput } from '@/components/PhoneInput';
+import { useState, useCallback, useRef } from 'react';
+import { PhoneInput, PhoneInputRef } from '@/components/PhoneInput';
 import { MultiNumberInput, PhoneEntry } from '@/components/MultiNumberInput';
 import { ServiceToggle, ServiceType } from '@/components/ServiceToggle';
 import { PlanSelector } from '@/components/PlanSelector';
 import { PaymentSheet } from '@/components/PaymentSheet';
 import { ProcessingState } from '@/components/ProcessingState';
 import { SuccessReceipt } from '@/components/SuccessReceipt';
-import { NetworkType } from '@/lib/networks';
+import { RewardsPage } from '@/components/RewardsPage';
+import { LoginPrompt } from '@/components/LoginPrompt';
+import { NetworkType, formatPhoneNumber } from '@/lib/networks';
 import { DataPlan, AirtimePlan, formatPrice } from '@/lib/plans';
 import {
   Transaction, 
@@ -17,10 +19,10 @@ import {
   saveTransaction,
 } from '@/lib/transactions';
 import { Button } from '@/components/ui/button';
-import { History, Users, User } from 'lucide-react';
+import { History, Users, User, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type AppState = 'input' | 'plans' | 'payment' | 'processing' | 'success';
+type AppState = 'input' | 'plans' | 'payment' | 'processing' | 'success' | 'rewards';
 
 const Index = () => {
   const [appState, setAppState] = useState<AppState>('input');
@@ -34,6 +36,9 @@ const Index = () => {
   const [selectedPlan, setSelectedPlan] = useState<DataPlan | AirtimePlan | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const phoneInputRef = useRef<PhoneInputRef>(null);
 
   const handlePhoneChange = useCallback((value: string, detectedNetwork: NetworkType) => {
     setPhoneNumber(value);
@@ -126,6 +131,24 @@ const Index = () => {
     setSelectedPlan(null);
   }, []);
 
+  const handleClaimRewards = useCallback(() => {
+    setAppState('rewards');
+  }, []);
+
+  const handleLoginPrompt = useCallback(() => {
+    setShowLoginPrompt(true);
+  }, []);
+
+  const handleLogin = useCallback(() => {
+    // In production, redirect to auth
+    setShowLoginPrompt(false);
+    // For now, just continue
+  }, []);
+
+  const handleContinueAsGuest = useCallback(() => {
+    setShowLoginPrompt(false);
+  }, []);
+
   const toggleMultiMode = () => {
     setIsMultiMode(!isMultiMode);
     if (!isMultiMode) {
@@ -135,6 +158,9 @@ const Index = () => {
   };
 
   const validEntriesCount = phoneEntries.filter(e => e.isValid).length;
+  const validPhoneNumbers = isMultiMode 
+    ? phoneEntries.filter(e => e.isValid).map(e => e.phone.replace(/\D/g, ''))
+    : [phoneNumber.replace(/\D/g, '')];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -166,9 +192,11 @@ const Index = () => {
                   entries={phoneEntries}
                   onEntriesChange={setPhoneEntries}
                   onAllValid={handleMultiValidNumbers}
+                  onLoginPrompt={handleLoginPrompt}
                 />
               ) : (
                 <PhoneInput
+                  ref={phoneInputRef}
                   value={phoneNumber}
                   onChange={handlePhoneChange}
                   onValidNumber={handleValidNumber}
@@ -183,19 +211,19 @@ const Index = () => {
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-full text-xs transition-all border",
                   isMultiMode 
-                    ? "bg-primary/10 text-primary border-primary/30" 
-                    : "text-muted-foreground hover:text-foreground border-border hover:border-muted-foreground"
+                    ? "border-primary text-orange-dark bg-transparent" 
+                    : "bg-primary/10 text-orange-dark border-transparent"
                 )}
               >
                 {isMultiMode ? (
                   <>
-                    <Users className="w-3.5 h-3.5" />
-                    Bulk Transaction
+                    <User className="w-3.5 h-3.5" />
+                    Single Transaction
                   </>
                 ) : (
                   <>
-                    <User className="w-3.5 h-3.5" />
-                    Single Transaction
+                    <Users className="w-3.5 h-3.5" />
+                    Bulk Transaction
                   </>
                 )}
               </button>
@@ -225,8 +253,13 @@ const Index = () => {
               onClick={handleBackToInput}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span>←</span>
-              <span className="font-mono">{phoneNumber}</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="font-mono">
+                {isMultiMode 
+                  ? `${validEntriesCount} numbers` 
+                  : formatPhoneNumber(phoneNumber)
+                }
+              </span>
             </button>
 
             {/* Plans grid */}
@@ -235,6 +268,10 @@ const Index = () => {
               serviceType={serviceType}
               selectedPlan={selectedPlan}
               onSelectPlan={handleSelectPlan}
+              onBackToInput={handleBackToInput}
+              phoneNumbers={validPhoneNumbers}
+              isMultiMode={isMultiMode}
+              onClaimRewards={handleClaimRewards}
             />
 
             {/* Pay button */}
@@ -269,11 +306,22 @@ const Index = () => {
 
         {/* Payment state */}
         {appState === 'payment' && paymentDetails && (
-          <PaymentSheet
-            paymentDetails={paymentDetails}
-            onConfirmPayment={handleConfirmPayment}
-            onCancel={handleCancelPayment}
-          />
+          <div className="space-y-6">
+            {/* Back button */}
+            <button
+              onClick={handleCancelPayment}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to plans
+            </button>
+
+            <PaymentSheet
+              paymentDetails={paymentDetails}
+              onConfirmPayment={handleConfirmPayment}
+              onCancel={handleCancelPayment}
+            />
+          </div>
         )}
 
         {/* Processing state */}
@@ -288,6 +336,11 @@ const Index = () => {
             onNewPurchase={handleNewPurchase}
           />
         )}
+
+        {/* Rewards page */}
+        {appState === 'rewards' && (
+          <RewardsPage onBack={() => setAppState('plans')} />
+        )}
       </main>
 
       {/* Footer - only show on input state */}
@@ -296,6 +349,14 @@ const Index = () => {
           Fast. Simple. Data.
         </footer>
       )}
+
+      {/* Login prompt dialog */}
+      <LoginPrompt
+        open={showLoginPrompt}
+        onOpenChange={setShowLoginPrompt}
+        onLogin={handleLogin}
+        onContinueAsGuest={handleContinueAsGuest}
+      />
     </div>
   );
 };
