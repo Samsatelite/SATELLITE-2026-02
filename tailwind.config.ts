@@ -47,9 +47,9 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        lemon: {
-          DEFAULT: "hsl(var(--lemon))",
-          dim: "hsl(var(--lemon-dim))",
+        orange: {
+          DEFAULT: "hsl(var(--orange))",
+          dark: "hsl(var(--orange-dark))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
