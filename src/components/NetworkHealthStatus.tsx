@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { NetworkType, networks } from '@/lib/networks';
 import { AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,30 +22,61 @@ interface NetworkHealthStatusProps {
   onCancel: () => void;
 }
 
-// Mock health status - in production this would come from the database
-const getNetworkHealth = (network: Exclude<NetworkType, null>): HealthStatus => {
-  // Simulate real-time status - in production fetch from Supabase
-  const statuses: Record<string, HealthStatus> = {
-    mtn: 'healthy',
-    airtel: 'healthy',
-    glo: 'healthy',
-    '9mobile': 'healthy',
-  };
-  return statuses[network] || 'healthy';
-};
-
 export function NetworkHealthStatus({ network, onProceed, onCancel }: NetworkHealthStatusProps) {
   const [health, setHealth] = useState<HealthStatus>('healthy');
   const [showCriticalDialog, setShowCriticalDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check network health
-    const status = getNetworkHealth(network);
-    setHealth(status);
-    
-    if (status === 'critical') {
-      setShowCriticalDialog(true);
-    }
+    const fetchNetworkHealth = async () => {
+      try {
+        // Fetch from Supabase
+        const { data, error } = await supabase
+          .from('networks')
+          .select('health_status, is_active')
+          .eq('id', network)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching network health:', error);
+          setHealth('healthy'); // Default to healthy on error
+        } else if (data) {
+          const status = (data.health_status as HealthStatus) || 'healthy';
+          setHealth(status);
+          
+          if (status === 'critical') {
+            setShowCriticalDialog(true);
+          }
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setHealth('healthy');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNetworkHealth();
+
+    // Also set up real-time subscription for health updates
+    const channel = supabase
+      .channel('network-health')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'networks', filter: `id=eq.${network}` },
+        (payload) => {
+          const newStatus = (payload.new.health_status as HealthStatus) || 'healthy';
+          setHealth(newStatus);
+          if (newStatus === 'critical') {
+            setShowCriticalDialog(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [network]);
 
   const networkInfo = networks[network];
@@ -69,6 +101,14 @@ export function NetworkHealthStatus({ network, onProceed, onCancel }: NetworkHea
 
   const config = statusConfig[health];
   const Icon = config.icon;
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-muted animate-pulse">
+        <span>Checking status...</span>
+      </div>
+    );
+  }
 
   return (
     <>

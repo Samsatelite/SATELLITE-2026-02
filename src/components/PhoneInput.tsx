@@ -86,8 +86,9 @@ export const PhoneInput = forwardRef<PhoneInputRef, PhoneInputProps>(
           // ignore
         }
       }
-      // Add to front, remove duplicates, keep max 2
-      numbers = [phone, ...numbers.filter(n => n !== phone)].slice(0, 2);
+      // Add to front, remove duplicates (normalize before comparing), keep max 2
+      const normalizedPhone = phone.replace(/\D/g, '');
+      numbers = [normalizedPhone, ...numbers.filter(n => n.replace(/\D/g, '') !== normalizedPhone)].slice(0, 2);
       localStorage.setItem('datadome_recent_numbers', JSON.stringify(numbers));
     };
 

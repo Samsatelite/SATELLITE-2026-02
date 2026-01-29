@@ -243,4 +243,18 @@
     stroke-dashoffset: 100;
     animation: checkmark 0.6s ease-out 0.2s forwards;
   }
+
+  /* Hide scrollbar but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Dark orange text utility */
+  .text-orange-dark {
+    color: hsl(28 100% 35%);
+  }
 }

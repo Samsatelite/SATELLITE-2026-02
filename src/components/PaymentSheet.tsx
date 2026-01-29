@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { formatPrice } from '@/lib/plans';
 import { PaymentDetails } from '@/lib/transactions';
-import { Copy, Check, ChevronDown, Clock } from 'lucide-react';
+import { Copy, Check, ChevronDown, Clock, Bitcoin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { CryptoPayment } from './CryptoPayment';
+
+type PaymentMethod = 'transfer' | 'crypto';
 
 interface PaymentSheetProps {
   paymentDetails: PaymentDetails;
@@ -12,8 +15,8 @@ interface PaymentSheetProps {
 }
 
 export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: PaymentSheetProps) {
-  const [copied, setCopied] = useState(false);
-  const [showOtherMethods, setShowOtherMethods] = useState(false);
+  const [copiedField, setCopiedField] = useState<'account' | 'amount' | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('transfer');
   const [timeLeft, setTimeLeft] = useState<string>('');
 
   // Countdown timer
@@ -37,23 +40,33 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
     return () => clearInterval(interval);
   }, [paymentDetails.expiresAt]);
 
-  const copyAccountNumber = async () => {
+  const copyToClipboard = async (text: string, field: 'account' | 'amount') => {
     try {
-      await navigator.clipboard.writeText(paymentDetails.accountNumber);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
     } catch {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = paymentDetails.accountNumber;
+      textArea.value = text;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
     }
   };
+
+  if (paymentMethod === 'crypto') {
+    return (
+      <CryptoPayment 
+        amount={paymentDetails.amount}
+        onConfirmPayment={onConfirmPayment}
+        onCancel={() => setPaymentMethod('transfer')}
+      />
+    );
+  }
 
   return (
     <div className="animate-slide-up space-y-6">
@@ -63,13 +76,48 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
         <span className="text-sm font-medium">Expires in {timeLeft}</span>
       </div>
 
+      {/* Payment method tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setPaymentMethod('transfer')}
+          className={cn(
+            "flex-1 py-3 px-4 rounded-lg border font-medium transition-colors",
+            paymentMethod === 'transfer'
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Bank Transfer
+        </button>
+        <button
+          onClick={() => setPaymentMethod('crypto')}
+          className={cn(
+            "flex-1 py-3 px-4 rounded-lg border font-medium transition-colors flex items-center justify-center gap-2",
+            "border-border bg-card text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Bitcoin className="w-4 h-4" />
+          Crypto
+        </button>
+      </div>
+
       {/* Transfer details card */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-4">
         <div className="text-center space-y-1">
           <p className="text-sm text-muted-foreground">Transfer exactly</p>
-          <p className="text-3xl font-bold tracking-tight">
-            {formatPrice(paymentDetails.amount)}
-          </p>
+          <button
+            onClick={() => copyToClipboard(paymentDetails.amount.toString(), 'amount')}
+            className="flex items-center justify-center gap-2 mx-auto"
+          >
+            <p className="text-3xl font-bold tracking-tight">
+              {formatPrice(paymentDetails.amount)}
+            </p>
+            {copiedField === 'amount' ? (
+              <Check className="w-4 h-4 text-success" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+            )}
+          </button>
         </div>
 
         <div className="h-px bg-border" />
@@ -84,11 +132,11 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Account Number</span>
             <button
-              onClick={copyAccountNumber}
+              onClick={() => copyToClipboard(paymentDetails.accountNumber, 'account')}
               className="flex items-center gap-2 font-mono text-lg font-bold tracking-wider press-effect"
             >
               {paymentDetails.accountNumber}
-              {copied ? (
+              {copiedField === 'account' ? (
                 <Check className="w-4 h-4 text-success" />
               ) : (
                 <Copy className="w-4 h-4 text-muted-foreground" />
@@ -111,31 +159,6 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
       >
         I've sent the money
       </Button>
-
-      {/* Other payment methods */}
-      <button
-        onClick={() => setShowOtherMethods(!showOtherMethods)}
-        className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        Other payment options
-        <ChevronDown className={cn(
-          "w-4 h-4 transition-transform",
-          showOtherMethods && "rotate-180"
-        )} />
-      </button>
-
-      {showOtherMethods && (
-        <div className="space-y-2 animate-slide-up">
-          <button className="w-full p-4 border border-border rounded-lg text-left hover:bg-muted/50 transition-colors press-effect">
-            <div className="font-medium">Pay with Card</div>
-            <div className="text-sm text-muted-foreground">Visa, Mastercard, Verve</div>
-          </button>
-          <button className="w-full p-4 border border-border rounded-lg text-left hover:bg-muted/50 transition-colors press-effect">
-            <div className="font-medium">USSD</div>
-            <div className="text-sm text-muted-foreground">Pay with bank USSD code</div>
-          </button>
-        </div>
-      )}
 
       {/* Cancel */}
       <button

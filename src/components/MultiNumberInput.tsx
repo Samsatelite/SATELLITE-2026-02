@@ -15,7 +15,7 @@ interface MultiNumberInputProps {
   entries: PhoneEntry[];
   onEntriesChange: (entries: PhoneEntry[]) => void;
   onAllValid: (entries: PhoneEntry[]) => void;
-  onLoginPrompt?: () => void;
+  onLoginPrompt?: (required?: boolean) => void;
 }
 
 export function MultiNumberInput({ entries, onEntriesChange, onAllValid, onLoginPrompt }: MultiNumberInputProps) {
@@ -50,10 +50,10 @@ export function MultiNumberInput({ entries, onEntriesChange, onAllValid, onLogin
     );
     onEntriesChange(updated);
 
-    // Check if we should prompt for login (>5 valid numbers)
+    // Check if we should prompt for login (>5 valid numbers = required)
     const validCount = updated.filter(e => e.isValid).length;
     if (validCount > 5 && onLoginPrompt) {
-      onLoginPrompt();
+      onLoginPrompt(true); // Required for >5 numbers
     }
   };
 
@@ -102,9 +102,9 @@ export function MultiNumberInput({ entries, onEntriesChange, onAllValid, onLogin
     setFreeformText('');
     setShowFreeformInput(false);
 
-    // Check for login prompt
+    // Check for login prompt (>5 = required)
     if (combined.filter(e => e.isValid).length > 5 && onLoginPrompt) {
-      onLoginPrompt();
+      onLoginPrompt(true);
     }
   };
 
@@ -131,7 +131,7 @@ export function MultiNumberInput({ entries, onEntriesChange, onAllValid, onLogin
           onEntriesChange(combined);
 
           if (combined.filter(e => e.isValid).length > 5 && onLoginPrompt) {
-            onLoginPrompt();
+            onLoginPrompt(true);
           }
         }
       };

@@ -37,6 +37,7 @@ const Index = () => {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [bulkLoginRequired, setBulkLoginRequired] = useState(false);
 
   const phoneInputRef = useRef<PhoneInputRef>(null);
 
@@ -135,19 +136,23 @@ const Index = () => {
     setAppState('rewards');
   }, []);
 
-  const handleLoginPrompt = useCallback(() => {
+  const handleLoginPrompt = useCallback((required: boolean = false) => {
+    setBulkLoginRequired(required);
     setShowLoginPrompt(true);
   }, []);
 
   const handleLogin = useCallback(() => {
     // In production, redirect to auth
     setShowLoginPrompt(false);
+    setBulkLoginRequired(false);
     // For now, just continue
   }, []);
 
   const handleContinueAsGuest = useCallback(() => {
-    setShowLoginPrompt(false);
-  }, []);
+    if (!bulkLoginRequired) {
+      setShowLoginPrompt(false);
+    }
+  }, [bulkLoginRequired]);
 
   const toggleMultiMode = () => {
     setIsMultiMode(!isMultiMode);
@@ -356,6 +361,7 @@ const Index = () => {
         onOpenChange={setShowLoginPrompt}
         onLogin={handleLogin}
         onContinueAsGuest={handleContinueAsGuest}
+        required={bulkLoginRequired}
       />
     </div>
   );

@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      crypto_options: {
+        Row: {
+          created_at: string | null
+          currency: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          network: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          network: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          network?: string
+        }
+        Relationships: []
+      }
       networks: {
         Row: {
           color: string
@@ -123,6 +171,7 @@ export type Database = {
           referral_code: string | null
           referral_points: number | null
           referred_by: string | null
+          referrer_code: string | null
           unique_id: string | null
           updated_at: string
           user_id: string
@@ -134,6 +183,7 @@ export type Database = {
           referral_code?: string | null
           referral_points?: number | null
           referred_by?: string | null
+          referrer_code?: string | null
           unique_id?: string | null
           updated_at?: string
           user_id: string
@@ -145,6 +195,7 @@ export type Database = {
           referral_code?: string | null
           referral_points?: number | null
           referred_by?: string | null
+          referrer_code?: string | null
           unique_id?: string | null
           updated_at?: string
           user_id?: string

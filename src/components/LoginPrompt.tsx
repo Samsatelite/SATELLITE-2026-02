@@ -1,4 +1,3 @@
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,17 +11,23 @@ interface LoginPromptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onLogin: () => void;
-  onContinueAsGuest: () => void;
+  onContinueAsGuest?: () => void;
+  required?: boolean; // For bulk transactions >5 numbers
 }
 
-export function LoginPrompt({ open, onOpenChange, onLogin, onContinueAsGuest }: LoginPromptProps) {
+export function LoginPrompt({ open, onOpenChange, onLogin, onContinueAsGuest, required = false }: LoginPromptProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={required ? undefined : onOpenChange}>
+      <DialogContent className="sm:max-w-md" onPointerDownOutside={required ? (e) => e.preventDefault() : undefined}>
         <DialogHeader>
-          <DialogTitle>Create an Account</DialogTitle>
+          <DialogTitle>
+            {required ? 'Account Required' : 'Create an Account'}
+          </DialogTitle>
           <DialogDescription>
-            For bulk transactions with more than 5 numbers, we recommend creating an account to:
+            {required 
+              ? 'For bulk transactions with more than 5 numbers, you must create an account or login to continue.'
+              : 'For bulk transactions with more than 5 numbers, we recommend creating an account to:'
+            }
           </DialogDescription>
         </DialogHeader>
         
@@ -49,9 +54,11 @@ export function LoginPrompt({ open, onOpenChange, onLogin, onContinueAsGuest }: 
           <Button onClick={onLogin} variant="primary" className="w-full">
             Create Account / Login
           </Button>
-          <Button onClick={onContinueAsGuest} variant="ghost" className="w-full text-muted-foreground">
-            Continue as Guest
-          </Button>
+          {!required && onContinueAsGuest && (
+            <Button onClick={onContinueAsGuest} variant="ghost" className="w-full text-muted-foreground">
+              Continue as Guest
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
