@@ -130,6 +130,33 @@ export function ReferralSection({ onClaimRewards }: ReferralSectionProps) {
   return (
     <div className="mt-6 space-y-4">
       <Separator />
+
+      {/* Enter referral code - above your referral code */}
+      {!hasUsedCode && (
+        <div className="space-y-2">
+          <span className="text-sm text-muted-foreground">Have a referral code?</span>
+          <div className="flex gap-2">
+            <Input
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              placeholder="Enter code"
+              maxLength={6}
+              className="flex-1 uppercase font-mono"
+            />
+            <Button size="sm" onClick={applyCode} disabled={!inputCode.trim()}>
+              Apply
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {hasUsedCode && (
+        <p className="text-xs text-muted-foreground text-center">
+          ✓ Referral code applied
+        </p>
+      )}
+
+      <Separator />
       
       {/* Your referral code - always visible */}
       <div className="space-y-3">
@@ -154,6 +181,8 @@ export function ReferralSection({ onClaimRewards }: ReferralSectionProps) {
           </div>
         </div>
 
+        <Separator />
+
         {/* Points & Rewards */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -172,33 +201,6 @@ export function ReferralSection({ onClaimRewards }: ReferralSectionProps) {
           )}
         </div>
       </div>
-
-      <Separator />
-
-      {/* Enter referral code - always visible for new users */}
-      {!hasUsedCode && (
-        <div className="space-y-2">
-          <span className="text-sm text-muted-foreground">Have a referral code?</span>
-          <div className="flex gap-2">
-            <Input
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-              placeholder="Enter code"
-              maxLength={6}
-              className="flex-1 uppercase font-mono"
-            />
-            <Button size="sm" onClick={applyCode} disabled={!inputCode.trim()}>
-              Apply
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {hasUsedCode && (
-        <p className="text-xs text-muted-foreground text-center">
-          ✓ Referral code applied
-        </p>
-      )}
     </div>
   );
 }
