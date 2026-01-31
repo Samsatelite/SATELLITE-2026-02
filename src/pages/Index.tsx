@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { PhoneInput, PhoneInputRef } from '@/components/PhoneInput';
 import { MultiNumberInput, PhoneEntry } from '@/components/MultiNumberInput';
 import { ServiceToggle, ServiceType } from '@/components/ServiceToggle';
@@ -8,7 +8,7 @@ import { ProcessingState } from '@/components/ProcessingState';
 import { SuccessReceipt } from '@/components/SuccessReceipt';
 import { RewardsPage } from '@/components/RewardsPage';
 import { LoginPrompt } from '@/components/LoginPrompt';
-import { NetworkType, formatPhoneNumber } from '@/lib/networks';
+import { NetworkType, formatPhoneNumber, networks } from '@/lib/networks';
 import { DataPlan, AirtimePlan, formatPrice } from '@/lib/plans';
 import {
   Transaction, 
@@ -17,10 +17,17 @@ import {
   generatePaymentDetails,
   saveLastNumber,
   saveTransaction,
+  getRecentTransactions,
 } from '@/lib/transactions';
 import { Button } from '@/components/ui/button';
-import { History, Users, User, ArrowLeft } from 'lucide-react';
+import { History, Users, User, ArrowLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 type AppState = 'input' | 'plans' | 'payment' | 'processing' | 'success' | 'rewards';
 
@@ -38,8 +45,15 @@ const Index = () => {
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [bulkLoginRequired, setBulkLoginRequired] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
 
   const phoneInputRef = useRef<PhoneInputRef>(null);
+
+  // Load recent transactions
+  useEffect(() => {
+    setRecentTransactions(getRecentTransactions());
+  }, []);
 
   const handlePhoneChange = useCallback((value: string, detectedNetwork: NetworkType) => {
     setPhoneNumber(value);
@@ -107,6 +121,7 @@ const Index = () => {
 
       setCurrentTransaction(transaction);
       saveTransaction(transaction);
+      setRecentTransactions(getRecentTransactions());
       setAppState('success');
     }, 2000);
   }, [selectedPlan, network, paymentDetails, phoneNumber, isMultiMode, phoneEntries]);
@@ -177,7 +192,10 @@ const Index = () => {
         >
           datadome<span className="text-primary">.</span>
         </button>
-        <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+        <button 
+          onClick={() => setShowHistory(true)}
+          className="p-2 hover:bg-muted rounded-lg transition-colors"
+        >
           <History className="w-5 h-5 text-muted-foreground" />
         </button>
       </header>
@@ -216,8 +234,8 @@ const Index = () => {
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-full text-xs transition-all border",
                   isMultiMode 
-                    ? "border-primary text-orange-dark bg-transparent" 
-                    : "bg-primary/10 text-orange-dark border-transparent"
+                    ? "border-primary text-primary bg-transparent" 
+                    : "bg-primary text-primary-foreground border-transparent"
                 )}
               >
                 {isMultiMode ? (
@@ -363,6 +381,50 @@ const Index = () => {
         onContinueAsGuest={handleContinueAsGuest}
         required={bulkLoginRequired}
       />
+
+      {/* Recent transactions sheet */}
+      <Sheet open={showHistory} onOpenChange={setShowHistory}>
+        <SheetContent side="bottom" className="h-[70vh]">
+          <SheetHeader>
+            <SheetTitle>Recent Transactions</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-3 overflow-y-auto max-h-[calc(70vh-80px)]">
+            {recentTransactions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No transactions yet
+              </p>
+            ) : (
+              recentTransactions.map((tx) => (
+                <div 
+                  key={tx.id}
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: tx.network ? networks[tx.network].color : '#888' }}
+                    >
+                      {tx.network ? networks[tx.network].name.slice(0, 3).toUpperCase() : '?'}
+                    </div>
+                    <div>
+                      <p className="font-mono text-sm">{formatPhoneNumber(tx.phoneNumber.split(', ')[0])}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {'size' in tx.plan ? tx.plan.size : formatPrice(tx.plan.amount)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{formatPrice(tx.amount)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(tx.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

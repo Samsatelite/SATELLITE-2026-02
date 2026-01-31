@@ -16,7 +16,7 @@ export function ServiceToggle({ value, onChange }: ServiceToggleProps) {
           className={cn(
             "px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap",
             value === 'data'
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -27,7 +27,7 @@ export function ServiceToggle({ value, onChange }: ServiceToggleProps) {
           className={cn(
             "px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap",
             value === 'airtime'
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >

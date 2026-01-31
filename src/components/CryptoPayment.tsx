@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Copy, Check, ChevronDown, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, ChevronDown, Clock, AlertCircle, CheckCircle2, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatPrice } from '@/lib/plans';
 
 interface CryptoOption {
   currency: string;
   network: string;
+  logo: string;
 }
 
 interface CryptoPaymentProps {
@@ -33,30 +34,41 @@ const MOCK_ADDRESSES: Record<string, string> = {
   'BNB-BSC': '0xB8c77482e45F1F44dE1745F52C74426C631bDD52',
 };
 
+// Coin logos (using simple emoji/text representations - in production use actual images)
 const cryptoOptions: CryptoOption[] = [
-  { currency: 'USDT', network: 'TRC20' },
-  { currency: 'USDT', network: 'BSC' },
-  { currency: 'USDT', network: 'Polygon' },
-  { currency: 'SOL', network: 'Solana' },
-  { currency: 'BNB', network: 'BSC' },
+  { currency: 'USDT', network: 'TRC20', logo: '₮' },
+  { currency: 'USDT', network: 'BSC', logo: '₮' },
+  { currency: 'USDT', network: 'Polygon', logo: '₮' },
+  { currency: 'SOL', network: 'Solana', logo: '◎' },
+  { currency: 'BNB', network: 'BSC', logo: '⬡' },
 ];
+
+// Crypto logo colors
+const CRYPTO_COLORS: Record<string, string> = {
+  'USDT': '#26A17B',
+  'SOL': '#9945FF',
+  'BNB': '#F0B90B',
+};
 
 export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaymentProps) {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoOption>(cryptoOptions[0]);
   const [showOptions, setShowOptions] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [copiedAmount, setCopiedAmount] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes
   const [step, setStep] = useState<'waiting' | 'confirming' | 'confirmed'>('waiting');
 
   // Calculate final amount with fee
-  const feeAmount = amount * (CRYPTO_FEE_PERCENT / 100);
-  const totalNGN = amount + feeAmount;
+  const totalNGN = amount * (1 + CRYPTO_FEE_PERCENT / 100);
   const rate = MOCK_RATES[selectedCrypto.currency] || 1;
   const cryptoAmount = selectedCrypto.currency === 'USDT' 
     ? (totalNGN / 1650).toFixed(2) // Mock NGN/USD rate
     : (totalNGN * rate).toFixed(6);
 
   const walletAddress = MOCK_ADDRESSES[`${selectedCrypto.currency}-${selectedCrypto.network}`] || '';
+
+  // Generate QR code URL (using a public QR code API)
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(walletAddress)}`;
 
   // Countdown timer
   useEffect(() => {
@@ -81,26 +93,25 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
   const copyAddress = async () => {
     try {
       await navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
     } catch {
-      // Fallback
       const textArea = document.createElement('textarea');
       textArea.value = walletAddress;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
     }
   };
 
   const copyAmount = async () => {
     try {
       await navigator.clipboard.writeText(cryptoAmount);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedAmount(true);
+      setTimeout(() => setCopiedAmount(false), 2000);
     } catch {
       // ignore
     }
@@ -117,6 +128,8 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
     }, 3000);
   };
 
+  const cryptoColor = CRYPTO_COLORS[selectedCrypto.currency] || '#888';
+
   return (
     <div className="animate-slide-up space-y-4">
       {/* Timer */}
@@ -127,15 +140,23 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
         </span>
       </div>
 
-      {/* Crypto selector */}
+      {/* Crypto selector with logo */}
       <div className="relative">
         <button
           onClick={() => setShowOptions(!showOptions)}
           className="w-full flex items-center justify-between p-3 bg-muted border border-border rounded-lg"
         >
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{selectedCrypto.currency}</span>
-            <span className="text-sm text-muted-foreground">({selectedCrypto.network})</span>
+          <div className="flex items-center gap-3">
+            <span 
+              className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold text-white"
+              style={{ backgroundColor: cryptoColor }}
+            >
+              {selectedCrypto.logo}
+            </span>
+            <div className="text-left">
+              <span className="font-semibold">{selectedCrypto.currency}</span>
+              <span className="text-sm text-muted-foreground ml-2">({selectedCrypto.network})</span>
+            </div>
           </div>
           <ChevronDown className={cn(
             "w-4 h-4 transition-transform",
@@ -145,22 +166,33 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
 
         {showOptions && (
           <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-            {cryptoOptions.map((option) => (
-              <button
-                key={`${option.currency}-${option.network}`}
-                onClick={() => {
-                  setSelectedCrypto(option);
-                  setShowOptions(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between p-3 hover:bg-muted transition-colors",
-                  selectedCrypto.currency === option.currency && selectedCrypto.network === option.network && "bg-primary/10"
-                )}
-              >
-                <span className="font-medium">{option.currency}</span>
-                <span className="text-sm text-muted-foreground">{option.network}</span>
-              </button>
-            ))}
+            {cryptoOptions.map((option) => {
+              const optionColor = CRYPTO_COLORS[option.currency] || '#888';
+              return (
+                <button
+                  key={`${option.currency}-${option.network}`}
+                  onClick={() => {
+                    setSelectedCrypto(option);
+                    setShowOptions(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors",
+                    selectedCrypto.currency === option.currency && selectedCrypto.network === option.network && "bg-primary/10"
+                  )}
+                >
+                  <span 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold text-white"
+                    style={{ backgroundColor: optionColor }}
+                  >
+                    {option.logo}
+                  </span>
+                  <div className="text-left">
+                    <span className="font-medium">{option.currency}</span>
+                    <span className="text-sm text-muted-foreground ml-2">{option.network}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -171,16 +203,34 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
           <p className="text-sm text-muted-foreground">Send exactly</p>
           <button 
             onClick={copyAmount}
-            className="flex items-center justify-center gap-2 mx-auto"
+            className="flex items-center justify-center gap-2 mx-auto group"
           >
             <p className="text-3xl font-bold tracking-tight">
               {cryptoAmount} {selectedCrypto.currency}
             </p>
-            <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+            {copiedAmount ? (
+              <Check className="w-5 h-5 text-green-500" />
+            ) : (
+              <Copy className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            )}
           </button>
           <p className="text-xs text-muted-foreground">
-            ≈ {formatPrice(totalNGN)} (includes {CRYPTO_FEE_PERCENT}% fee)
+            ≈ {formatPrice(totalNGN)} (fee included)
           </p>
+        </div>
+
+        <div className="h-px bg-border" />
+
+        {/* QR Code */}
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-muted-foreground">Scan to pay</p>
+          <div className="p-2 bg-white rounded-lg">
+            <img 
+              src={qrCodeUrl} 
+              alt="Payment QR Code" 
+              className="w-32 h-32"
+            />
+          </div>
         </div>
 
         <div className="h-px bg-border" />
@@ -188,21 +238,21 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
         {/* Network info */}
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Network</span>
-          <span className="font-semibold text-primary">{selectedCrypto.network}</span>
+          <span className="font-semibold" style={{ color: cryptoColor }}>{selectedCrypto.network}</span>
         </div>
 
         {/* Wallet address */}
         <div className="space-y-2">
-          <span className="text-sm text-muted-foreground">To this address</span>
+          <span className="text-sm text-muted-foreground">Or copy address</span>
           <button
             onClick={copyAddress}
-            className="w-full flex items-center gap-2 p-3 bg-muted rounded-lg text-left"
+            className="w-full flex items-center gap-2 p-3 bg-muted rounded-lg text-left group"
           >
             <span className="flex-1 font-mono text-xs break-all">{walletAddress}</span>
-            {copied ? (
-              <Check className="w-4 h-4 text-success shrink-0" />
+            {copiedAddress ? (
+              <Check className="w-4 h-4 text-green-500 shrink-0" />
             ) : (
-              <Copy className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground shrink-0 transition-colors" />
             )}
           </button>
         </div>
@@ -213,7 +263,7 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
         <div className="flex items-center gap-3">
           <div className={cn(
             "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-            step === 'waiting' ? "bg-primary text-primary-foreground" : "bg-success text-white"
+            step === 'waiting' ? "bg-primary text-primary-foreground" : "bg-green-500 text-white"
           )}>
             {step === 'waiting' ? '1' : <CheckCircle2 className="w-4 h-4" />}
           </div>
@@ -223,7 +273,7 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
           <div className={cn(
             "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
             step === 'confirming' ? "bg-primary text-primary-foreground animate-pulse" : 
-            step === 'confirmed' ? "bg-success text-white" : "bg-muted text-muted-foreground"
+            step === 'confirmed' ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
           )}>
             {step === 'confirmed' ? <CheckCircle2 className="w-4 h-4" /> : '2'}
           </div>
@@ -237,7 +287,7 @@ export function CryptoPayment({ amount, onCancel, onConfirmPayment }: CryptoPaym
         <div className="flex items-center gap-3">
           <div className={cn(
             "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-            step === 'confirmed' ? "bg-success text-white" : "bg-muted text-muted-foreground"
+            step === 'confirmed' ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
           )}>
             {step === 'confirmed' ? <CheckCircle2 className="w-4 h-4" /> : '3'}
           </div>

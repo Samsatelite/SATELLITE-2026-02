@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatPrice } from '@/lib/plans';
 import { PaymentDetails } from '@/lib/transactions';
-import { Copy, Check, ChevronDown, Clock, Bitcoin } from 'lucide-react';
+import { Copy, Check, Clock, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CryptoPayment } from './CryptoPayment';
@@ -96,7 +96,7 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
             "border-border bg-card text-muted-foreground hover:text-foreground"
           )}
         >
-          <Bitcoin className="w-4 h-4" />
+          <Wallet className="w-4 h-4" />
           Crypto
         </button>
       </div>
