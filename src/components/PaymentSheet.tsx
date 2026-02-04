@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatPrice } from '@/lib/plans';
 import { PaymentDetails } from '@/lib/transactions';
-import { Copy, Check, Clock, Wallet } from 'lucide-react';
+import { Copy, Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CryptoPayment } from './CryptoPayment';
@@ -92,11 +92,10 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
         <button
           onClick={() => setPaymentMethod('crypto')}
           className={cn(
-            "flex-1 py-3 px-4 rounded-lg border font-medium transition-colors flex items-center justify-center gap-2",
+            "flex-1 py-3 px-4 rounded-lg border font-medium transition-colors",
             "border-border bg-card text-muted-foreground hover:text-foreground"
           )}
         >
-          <Wallet className="w-4 h-4" />
           Crypto
         </button>
       </div>
@@ -151,14 +150,29 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
         </div>
       </div>
 
-      {/* Confirm button */}
-      <Button
-        onClick={onConfirmPayment}
-        className="w-full h-14 text-lg font-bold"
-        variant="primary"
-      >
-        I've sent the money
-      </Button>
+      {/* Confirm buttons */}
+      <div className="space-y-3">
+        <Button
+          onClick={onConfirmPayment}
+          className="w-full h-14 text-lg font-bold"
+          variant="primary"
+        >
+          I've sent the money
+        </Button>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        <Button
+          onClick={onConfirmPayment}
+          className="w-full h-14 text-lg font-bold bg-[#00C853] hover:bg-[#00C853]/90 text-white"
+        >
+          I've sent via OPay
+        </Button>
+      </div>
 
       {/* Cancel */}
       <button

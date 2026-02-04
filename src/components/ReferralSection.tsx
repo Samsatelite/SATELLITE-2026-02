@@ -132,7 +132,7 @@ export function ReferralSection({ onClaimRewards }: ReferralSectionProps) {
       <Separator />
 
       {/* Enter referral code - above your referral code */}
-      {!hasUsedCode && (
+      {!hasUsedCode ? (
         <div className="space-y-2">
           <span className="text-sm text-muted-foreground">Have a referral code?</span>
           <div className="flex gap-2">
@@ -148,10 +148,8 @@ export function ReferralSection({ onClaimRewards }: ReferralSectionProps) {
             </Button>
           </div>
         </div>
-      )}
-
-      {hasUsedCode && (
-        <p className="text-xs text-muted-foreground text-center">
+      ) : (
+        <p className="text-xs text-success text-center">
           ✓ Referral code applied
         </p>
       )}
