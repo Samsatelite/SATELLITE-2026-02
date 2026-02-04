@@ -231,12 +231,7 @@ const Index = () => {
             <div className="flex justify-center pt-2">
               <button
                 onClick={toggleMultiMode}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-xs transition-all border",
-                  isMultiMode 
-                    ? "border-primary text-primary bg-transparent" 
-                    : "bg-primary text-primary-foreground border-transparent"
-                )}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-xs transition-all border border-primary text-primary bg-transparent hover:bg-primary/10"
               >
                 {isMultiMode ? (
                   <>
@@ -274,7 +269,7 @@ const Index = () => {
             {/* Back button & phone display */}
             <button
               onClick={handleBackToInput}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-4"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="font-mono">
