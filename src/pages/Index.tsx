@@ -22,6 +22,7 @@ import {
 } from '@/lib/transactions';
 import { Button } from '@/components/ui/button';
 import { History, Users, User as UserIcon, ArrowLeft, LogOut } from 'lucide-react';
+ import { MultiNumberInput, PhoneEntry } from '@/components/MultiNumberInput';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -45,6 +46,10 @@ const Index = () => {
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [isMultiMode, setIsMultiMode] = useState(false);
+  const [multiEntries, setMultiEntries] = useState<PhoneEntry[]>([
+    { id: crypto.randomUUID(), phone: '', network: null, isValid: false }
+  ]);
 
   const phoneInputRef = useRef<PhoneInputRef>(null);
 
@@ -89,6 +94,23 @@ const Index = () => {
     setAppState('plans');
     saveLastNumber(phone);
   }, []);
+
+  const handleMultiEntriesChange = useCallback((entries: PhoneEntry[]) => {
+    setMultiEntries(entries);
+    // Update network from first valid entry
+    const firstValid = entries.find(e => e.isValid);
+    if (firstValid) {
+      setNetwork(firstValid.network);
+    }
+  }, []);
+
+  const handleMultiProceed = useCallback(() => {
+    const validEntries = multiEntries.filter(e => e.isValid);
+    if (validEntries.length > 0 && validEntries[0].network) {
+      setNetwork(validEntries[0].network);
+      setAppState('plans');
+    }
+  }, [multiEntries]);
 
   const handleSelectPlan = useCallback((plan: DataPlan | AirtimePlan) => {
     setSelectedPlan(plan);
@@ -147,6 +169,8 @@ const Index = () => {
     setSelectedPlan(null);
     setPaymentDetails(null);
     setCurrentTransaction(null);
+    setIsMultiMode(false);
+    setMultiEntries([{ id: crypto.randomUUID(), phone: '', network: null, isValid: false }]);
   }, []);
 
   const handleBackToInput = useCallback(() => {
@@ -172,7 +196,9 @@ const Index = () => {
     }
   }, []);
 
-  const validPhoneNumbers = [phoneNumber.replace(/\D/g, '')];
+  const validPhoneNumbers = isMultiMode 
+    ? multiEntries.filter(e => e.isValid).map(e => e.phone.replace(/\D/g, ''))
+    : [phoneNumber.replace(/\D/g, '')];
 
   // Show loading state
   if (isLoading) {
@@ -226,12 +252,60 @@ const Index = () => {
 
             {/* Phone input(s) */}
             <div className="pt-4">
+              {/* Single/Bulk toggle */}
+              <div className="flex justify-center mb-4">
+                <div className="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+                  <button
+                    onClick={() => setIsMultiMode(false)}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      !isMultiMode 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Single
+                  </button>
+                  <button
+                    onClick={() => setIsMultiMode(true)}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      isMultiMode 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Bulk
+                  </button>
+                </div>
+              </div>
+
+              {isMultiMode ? (
+                <>
+                  <MultiNumberInput
+                    entries={multiEntries}
+                    onEntriesChange={handleMultiEntriesChange}
+                    onAllValid={() => {}}
+                  />
+                  {multiEntries.some(e => e.isValid) && (
+                    <Button
+                      onClick={handleMultiProceed}
+                      variant="primary"
+                      size="xl"
+                      className="w-full mt-4"
+                    >
+                      Continue with {multiEntries.filter(e => e.isValid).length} number{multiEntries.filter(e => e.isValid).length !== 1 ? 's' : ''}
+                    </Button>
+                  )}
+                </>
+              ) : (
               <PhoneInput
                 ref={phoneInputRef}
                 value={phoneNumber}
                 onChange={handlePhoneChange}
                 onValidNumber={handleValidNumber}
               />
+              )}
             </div>
           </div>
         )}
@@ -256,7 +330,7 @@ const Index = () => {
               onSelectPlan={handleSelectPlan}
               onBackToInput={handleBackToInput}
               phoneNumbers={validPhoneNumbers}
-              isMultiMode={false}
+              isMultiMode={isMultiMode}
               onClaimRewards={handleClaimRewards}
             />
 
