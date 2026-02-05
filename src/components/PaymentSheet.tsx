@@ -88,19 +88,6 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
           </button>
 
           <button
-            onClick={() => setPaymentMethod('crypto')}
-            className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
-              <Bitcoin className="w-6 h-6 text-orange-500" />
-            </div>
-            <div className="text-left">
-              <p className="font-semibold">Pay with Crypto</p>
-              <p className="text-sm text-muted-foreground">USDT, SOL, BNB • Fee included</p>
-            </div>
-          </button>
-
-          <button
             onClick={() => setPaymentMethod('opay')}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
           >
@@ -110,6 +97,19 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
             <div className="text-left">
               <p className="font-semibold">Pay with OPay</p>
               <p className="text-sm text-muted-foreground">Opens OPay app to complete</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setPaymentMethod('crypto')}
+            className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+              <Bitcoin className="w-6 h-6 text-orange-500" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">Pay with Crypto</p>
+              <p className="text-sm text-muted-foreground">USDT, SOL, BNB • Fee included</p>
             </div>
           </button>
         </div>
