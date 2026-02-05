@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { formatPrice } from '@/lib/plans';
 import { PaymentDetails } from '@/lib/transactions';
-import { Copy, Check, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Copy, Check, Clock, Banknote, Bitcoin, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CryptoPayment } from './CryptoPayment';
 
-type PaymentMethod = 'transfer' | 'crypto';
+type PaymentMethod = 'select' | 'transfer' | 'crypto' | 'opay';
 
 interface PaymentSheetProps {
   paymentDetails: PaymentDetails;
@@ -16,7 +15,7 @@ interface PaymentSheetProps {
 
 export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: PaymentSheetProps) {
   const [copiedField, setCopiedField] = useState<'account' | 'amount' | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('transfer');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('select');
   const [timeLeft, setTimeLeft] = useState<string>('');
 
   // Countdown timer
@@ -58,49 +57,134 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
     }
   };
 
+  // Payment method selection screen
+  if (paymentMethod === 'select') {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <Clock className="w-4 h-4" />
+          <span className="text-sm font-medium">Expires in {timeLeft}</span>
+        </div>
+
+        <div className="text-center space-y-1">
+          <p className="text-sm text-muted-foreground">Amount to pay</p>
+          <p className="text-3xl font-bold tracking-tight">
+            {formatPrice(paymentDetails.amount)}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <button
+            onClick={() => setPaymentMethod('transfer')}
+            className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <Banknote className="w-6 h-6 text-blue-500" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">Bank Transfer</p>
+              <p className="text-sm text-muted-foreground">Transfer to our bank account</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setPaymentMethod('crypto')}
+            className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+              <Bitcoin className="w-6 h-6 text-orange-500" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">Pay with Crypto</p>
+              <p className="text-sm text-muted-foreground">USDT, SOL, BNB • Fee included</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setPaymentMethod('opay')}
+            className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-full bg-[#00C853]/10 flex items-center justify-center">
+              <Smartphone className="w-6 h-6 text-[#00C853]" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">Pay with OPay</p>
+              <p className="text-sm text-muted-foreground">Opens OPay app to complete</p>
+            </div>
+          </button>
+        </div>
+
+        <button
+          onClick={onCancel}
+          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cancel transaction
+        </button>
+      </div>
+    );
+  }
+
   if (paymentMethod === 'crypto') {
     return (
       <CryptoPayment 
         amount={paymentDetails.amount}
         onConfirmPayment={onConfirmPayment}
-        onCancel={() => setPaymentMethod('transfer')}
+        onCancel={() => setPaymentMethod('select')}
       />
     );
   }
 
+  // OPay payment screen
+  if (paymentMethod === 'opay') {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <Clock className="w-4 h-4" />
+          <span className="text-sm font-medium">Expires in {timeLeft}</span>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#00C853]/10 flex items-center justify-center mx-auto">
+            <Smartphone className="w-8 h-8 text-[#00C853]" />
+          </div>
+          
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Amount to pay</p>
+            <p className="text-3xl font-bold tracking-tight">
+              {formatPrice(paymentDetails.amount)}
+            </p>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            Click below to open OPay and complete your payment
+          </p>
+        </div>
+
+        <Button
+          onClick={onConfirmPayment}
+          className="w-full h-14 text-lg font-bold bg-[#00C853] hover:bg-[#00C853]/90 text-white"
+        >
+          Open OPay App
+        </Button>
+
+        <button
+          onClick={() => setPaymentMethod('select')}
+          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Choose different method
+        </button>
+      </div>
+    );
+  }
+
+  // Bank transfer screen
   return (
     <div className="animate-slide-up space-y-6">
-      {/* Timer */}
       <div className="flex items-center justify-center gap-2 text-muted-foreground">
         <Clock className="w-4 h-4" />
         <span className="text-sm font-medium">Expires in {timeLeft}</span>
       </div>
 
-      {/* Payment method tabs */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setPaymentMethod('transfer')}
-          className={cn(
-            "flex-1 py-3 px-4 rounded-lg border font-medium transition-colors",
-            paymentMethod === 'transfer'
-              ? "border-primary bg-primary/10 text-primary"
-              : "border-border bg-card text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Bank Transfer
-        </button>
-        <button
-          onClick={() => setPaymentMethod('crypto')}
-          className={cn(
-            "flex-1 py-3 px-4 rounded-lg border font-medium transition-colors",
-            "border-border bg-card text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Crypto
-        </button>
-      </div>
-
-      {/* Transfer details card */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-4">
         <div className="text-center space-y-1">
           <p className="text-sm text-muted-foreground">Transfer exactly</p>
@@ -150,36 +234,19 @@ export function PaymentSheet({ paymentDetails, onConfirmPayment, onCancel }: Pay
         </div>
       </div>
 
-      {/* Confirm buttons */}
-      <div className="space-y-3">
-        <Button
-          onClick={onConfirmPayment}
-          className="w-full h-14 text-lg font-bold"
-          variant="primary"
-        >
-          I've sent the money
-        </Button>
+      <Button
+        onClick={onConfirmPayment}
+        className="w-full h-14 text-lg font-bold"
+        variant="primary"
+      >
+        I've sent the money
+      </Button>
 
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        <Button
-          onClick={onConfirmPayment}
-          className="w-full h-14 text-lg font-bold bg-[#00C853] hover:bg-[#00C853]/90 text-white"
-        >
-          I've sent via OPay
-        </Button>
-      </div>
-
-      {/* Cancel */}
       <button
-        onClick={onCancel}
+        onClick={() => setPaymentMethod('select')}
         className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        Cancel transaction
+        Choose different method
       </button>
     </div>
   );
