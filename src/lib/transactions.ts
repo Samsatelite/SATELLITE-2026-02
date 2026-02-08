@@ -14,6 +14,7 @@ export interface Transaction {
   createdAt: Date;
   completedAt?: Date;
   paymentMethod?: string;
+  isBulk?: boolean;
 }
 
 export interface PaymentDetails {
@@ -39,7 +40,7 @@ export function generatePaymentDetails(amount: number, reference: string): Payme
     accountNumber: '7821234567',
     accountName: 'Paystack-Datadome',
     amount,
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     reference,
   };
 }
@@ -58,7 +59,7 @@ export function getLastNumber(): string | null {
 
 export function saveTransaction(transaction: Transaction): void {
   const existing = getRecentTransactions();
-  const updated = [transaction, ...existing].slice(0, 10); // Keep last 10
+  const updated = [transaction, ...existing].slice(0, 10);
   localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updated));
 }
 
