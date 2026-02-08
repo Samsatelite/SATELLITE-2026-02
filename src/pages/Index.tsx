@@ -21,8 +21,8 @@ import {
   getRecentTransactions,
 } from '@/lib/transactions';
 import { Button } from '@/components/ui/button';
-import { History, Users, User as UserIcon, ArrowLeft, LogOut } from 'lucide-react';
- import { MultiNumberInput, PhoneEntry } from '@/components/MultiNumberInput';
+import { History, ArrowLeft, LogOut } from 'lucide-react';
+import { MultiNumberInput, PhoneEntry } from '@/components/MultiNumberInput';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -65,7 +65,6 @@ const Index = () => {
       setIsLoading(false);
     });
 
-    // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -97,7 +96,6 @@ const Index = () => {
 
   const handleMultiEntriesChange = useCallback((entries: PhoneEntry[]) => {
     setMultiEntries(entries);
-    // Update network from first valid entry
     const firstValid = entries.find(e => e.isValid);
     if (firstValid) {
       setNetwork(firstValid.network);
@@ -119,28 +117,34 @@ const Index = () => {
   const handlePayNow = useCallback(() => {
     if (!selectedPlan || !network) return;
     
-    // Handle both data plans (price) and airtime plans (amount)
     const planPrice = 'price' in selectedPlan ? selectedPlan.price : selectedPlan.amount;
     
+    // Multiply by number count in bulk mode
+    const numberCount = isMultiMode 
+      ? multiEntries.filter(e => e.isValid).length 
+      : 1;
+    const totalAmount = planPrice * numberCount;
+    
     const reference = generateReference();
-    const details = generatePaymentDetails(planPrice, reference);
+    const details = generatePaymentDetails(totalAmount, reference);
     setPaymentDetails(details);
     setAppState('payment');
-  }, [selectedPlan, network]);
+  }, [selectedPlan, network, isMultiMode, multiEntries]);
 
   const handleConfirmPayment = useCallback(() => {
     if (!selectedPlan || !network || !paymentDetails) return;
 
     setAppState('processing');
 
-    // Simulate payment verification and VTU delivery
     setTimeout(() => {
-      const targetPhone = phoneNumber.replace(/\D/g, '');
+      const phoneNumbers = isMultiMode 
+        ? multiEntries.filter(e => e.isValid).map(e => e.phone.replace(/\D/g, ''))
+        : [phoneNumber.replace(/\D/g, '')];
 
       const transaction: Transaction = {
         id: crypto.randomUUID(),
         reference: paymentDetails.reference,
-        phoneNumber: targetPhone,
+        phoneNumber: phoneNumbers.join(', '),
         network,
         plan: selectedPlan,
         amount: paymentDetails.amount,
@@ -148,6 +152,7 @@ const Index = () => {
         createdAt: new Date(),
         completedAt: new Date(),
         paymentMethod: 'bank_transfer',
+        isBulk: isMultiMode && phoneNumbers.length > 1,
       };
 
       setCurrentTransaction(transaction);
@@ -155,7 +160,7 @@ const Index = () => {
       setRecentTransactions(getRecentTransactions());
       setAppState('success');
     }, 2000);
-  }, [selectedPlan, network, paymentDetails, phoneNumber]);
+  }, [selectedPlan, network, paymentDetails, phoneNumber, isMultiMode, multiEntries]);
 
   const handleCancelPayment = useCallback(() => {
     setAppState('plans');
@@ -200,7 +205,6 @@ const Index = () => {
     ? multiEntries.filter(e => e.isValid).map(e => e.phone.replace(/\D/g, ''))
     : [phoneNumber.replace(/\D/g, '')];
 
-  // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -211,7 +215,6 @@ const Index = () => {
     );
   }
 
-  // Show auth screen if not logged in
   if (appState === 'auth') {
     return <AuthScreen />;
   }
@@ -252,34 +255,6 @@ const Index = () => {
 
             {/* Phone input(s) */}
             <div className="pt-4">
-              {/* Single/Bulk toggle */}
-              <div className="flex justify-center mb-4">
-                <div className="inline-flex rounded-lg border border-border p-1 bg-muted/50">
-                  <button
-                    onClick={() => setIsMultiMode(false)}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                      !isMultiMode 
-                        ? "bg-primary text-primary-foreground" 
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Single
-                  </button>
-                  <button
-                    onClick={() => setIsMultiMode(true)}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                      isMultiMode 
-                        ? "bg-primary text-primary-foreground" 
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Bulk
-                  </button>
-                </div>
-              </div>
-
               {isMultiMode ? (
                 <>
                   <MultiNumberInput
@@ -297,14 +272,30 @@ const Index = () => {
                       Continue with {multiEntries.filter(e => e.isValid).length} number{multiEntries.filter(e => e.isValid).length !== 1 ? 's' : ''}
                     </Button>
                   )}
+                  {/* Switch to single */}
+                  <button
+                    onClick={() => setIsMultiMode(false)}
+                    className="w-full mt-3 py-2 px-4 text-xs font-medium rounded-full border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors"
+                  >
+                    Single Transaction
+                  </button>
                 </>
               ) : (
-              <PhoneInput
-                ref={phoneInputRef}
-                value={phoneNumber}
-                onChange={handlePhoneChange}
-                onValidNumber={handleValidNumber}
-              />
+                <>
+                  <PhoneInput
+                    ref={phoneInputRef}
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    onValidNumber={handleValidNumber}
+                  />
+                  {/* Bulk transaction micro button below progress */}
+                  <button
+                    onClick={() => setIsMultiMode(true)}
+                    className="w-full mt-3 py-2 px-4 text-xs font-medium rounded-full border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors"
+                  >
+                    Bulk Transaction
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -319,7 +310,12 @@ const Index = () => {
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="font-mono">{formatPhoneNumber(phoneNumber)}</span>
+              <span className="font-mono">
+                {isMultiMode 
+                  ? `${validPhoneNumbers.length} numbers`
+                  : formatPhoneNumber(phoneNumber)
+                }
+              </span>
             </button>
 
             {/* Plans grid */}
@@ -349,8 +345,15 @@ const Index = () => {
                 >
                   Pay {selectedPlan && formatPrice(
                     (() => {
-                      return 'price' in selectedPlan ? selectedPlan.price : selectedPlan.amount;
+                      const unitPrice = 'price' in selectedPlan ? selectedPlan.price : selectedPlan.amount;
+                      const count = isMultiMode ? validPhoneNumbers.length : 1;
+                      return unitPrice * count;
                     })()
+                  )}
+                  {isMultiMode && validPhoneNumbers.length > 1 && (
+                    <span className="text-xs opacity-70 ml-1">
+                      ({validPhoneNumbers.length} numbers)
+                    </span>
                   )}
                 </Button>
               </div>
@@ -361,7 +364,6 @@ const Index = () => {
         {/* Payment state */}
         {appState === 'payment' && paymentDetails && (
           <div className="space-y-6">
-            {/* Back button */}
             <button
               onClick={handleCancelPayment}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -429,7 +431,12 @@ const Index = () => {
                       {tx.network ? networks[tx.network].name.slice(0, 3).toUpperCase() : '?'}
                     </div>
                     <div>
-                      <p className="font-mono text-sm">{formatPhoneNumber(tx.phoneNumber.split(', ')[0])}</p>
+                      <p className="font-mono text-sm">
+                        {tx.isBulk 
+                          ? `Bulk (${tx.phoneNumber.split(', ').length} numbers)`
+                          : formatPhoneNumber(tx.phoneNumber.split(', ')[0])
+                        }
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {'size' in tx.plan ? tx.plan.size : formatPrice(tx.plan.amount)}
                       </p>

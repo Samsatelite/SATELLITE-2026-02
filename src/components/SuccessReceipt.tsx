@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Transaction } from '@/lib/transactions';
 import { formatPrice } from '@/lib/plans';
-import { networks } from '@/lib/networks';
+import { networks, formatPhoneNumber } from '@/lib/networks';
 import { Share2, RotateCcw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import html2canvas from 'html2canvas';
@@ -16,6 +16,9 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
   const network = networks[transaction.network];
   const isAirtime = !('size' in transaction.plan);
   const planLabel = isAirtime ? 'Airtime' : (transaction.plan as { size: string }).size;
+
+  const phoneNumbers = transaction.phoneNumber.split(', ');
+  const isBulk = transaction.isBulk || phoneNumbers.length > 1;
 
   const generateReceiptImage = async (): Promise<Blob | null> => {
     if (!receiptRef.current) return null;
@@ -56,11 +59,11 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
       }
     }
     
-    // Fallback to WhatsApp text share
     const typeLabel = isAirtime ? 'Airtime' : 'Data';
+    const phoneDisplay = isBulk ? `Bulk (${phoneNumbers.length} numbers)` : transaction.phoneNumber;
     const message = encodeURIComponent(
       `✅ ${typeLabel} Purchase Successful!\n\n` +
-      `📱 ${transaction.phoneNumber}\n` +
+      `📱 ${phoneDisplay}\n` +
       `📊 ${planLabel} (${network.name})\n` +
       `💰 ${formatPrice(transaction.amount)}\n` +
       `🔖 Ref: ${transaction.reference}\n\n` +
@@ -90,15 +93,9 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
         <div className="relative">
           <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
             <svg className="w-10 h-10 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-              <path
-                d="M5 13l4 4L19 7"
-                className="animate-checkmark"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <path d="M5 13l4 4L19 7" className="animate-checkmark" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          {/* Pulse rings */}
           <div className="absolute inset-0 rounded-full bg-success/20 animate-ping" style={{ animationDuration: '2s' }} />
         </div>
       </div>
@@ -107,13 +104,15 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold tracking-tight">{isAirtime ? 'Airtime Sent!' : 'Data Sent!'}</h2>
         <p className="text-muted-foreground mt-1">
-          {planLabel} delivered to {transaction.phoneNumber}
+          {isBulk 
+            ? `${planLabel} delivered to ${phoneNumbers.length} numbers`
+            : `${planLabel} delivered to ${transaction.phoneNumber}`
+          }
         </p>
       </div>
 
-      {/* Receipt card - this is what gets captured as image */}
+      {/* Receipt card */}
       <div ref={receiptRef} className="bg-card border border-border rounded-xl p-5 space-y-4">
-        {/* Logo */}
         <div className="text-center pb-2 border-b border-border">
           <span className="text-lg font-bold tracking-tighter">
             datadome<span className="text-primary">.</span>
@@ -134,18 +133,20 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
           <span className="text-sm text-muted-foreground">Network</span>
           <span 
             className="font-semibold px-2 py-0.5 rounded text-sm"
-            style={{ 
-              backgroundColor: network.color + '20',
-              color: network.color,
-            }}
+            style={{ backgroundColor: network.color + '20', color: network.color }}
           >
             {network.name}
           </span>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start">
           <span className="text-sm text-muted-foreground">Phone</span>
-          <span className="font-mono font-medium">{transaction.phoneNumber}</span>
+          <span className="font-mono font-medium text-right">
+            {isBulk 
+              ? `Bulk (${phoneNumbers.length} numbers)`
+              : formatPhoneNumber(transaction.phoneNumber)
+            }
+          </span>
         </div>
 
         <div className="h-px bg-border" />
@@ -159,11 +160,7 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
           <span className="text-sm text-muted-foreground">Date</span>
           <span className="text-sm">
             {transaction.createdAt.toLocaleDateString('en-NG', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
+              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
           </span>
         </div>
@@ -177,29 +174,17 @@ export function SuccessReceipt({ transaction, onNewPurchase }: SuccessReceiptPro
       {/* Actions */}
       <div className="mt-6 space-y-3">
         <div className="flex gap-2">
-          <Button
-            onClick={shareReceipt}
-            variant="outline"
-            className="flex-1 h-12"
-          >
+          <Button onClick={shareReceipt} variant="outline" className="flex-1 h-12">
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
-          <Button
-            onClick={downloadReceipt}
-            variant="outline"
-            className="flex-1 h-12"
-          >
+          <Button onClick={downloadReceipt} variant="outline" className="flex-1 h-12">
             <Download className="w-4 h-4 mr-2" />
             Save
           </Button>
         </div>
 
-        <Button
-          onClick={onNewPurchase}
-          className="w-full h-12"
-          variant="primary"
-        >
+        <Button onClick={onNewPurchase} className="w-full h-12" variant="primary">
           <RotateCcw className="w-4 h-4 mr-2" />
           Buy Again
         </Button>
