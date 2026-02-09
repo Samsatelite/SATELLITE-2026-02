@@ -275,7 +275,7 @@ const Index = () => {
                   {/* Switch to single */}
                   <button
                     onClick={() => setIsMultiMode(false)}
-                    className="w-full mt-3 py-2 px-4 text-xs font-medium rounded-full border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors"
+                    className="mt-3 py-2 px-4 text-xs font-medium rounded-full border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors mx-auto block"
                   >
                     Single Transaction
                   </button>
@@ -291,7 +291,7 @@ const Index = () => {
                   {/* Bulk transaction micro button below progress */}
                   <button
                     onClick={() => setIsMultiMode(true)}
-                    className="w-full mt-3 py-2 px-4 text-xs font-medium rounded-full border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors"
+                    className="mt-3 py-2 px-4 text-xs font-medium rounded-full border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors mx-auto block"
                   >
                     Bulk Transaction
                   </button>
