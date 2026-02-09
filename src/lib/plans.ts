@@ -7,8 +7,10 @@ export interface DataPlan {
   sizeValue: number; // in MB for sorting
   price: number;
   validity: string;
-  type: 'SME' | 'Corporate' | 'Gifting' | 'Airtime';
+  type: 'SME' | 'Corporate' | 'Gifting' | 'Airtime' | 'Data';
   popular?: boolean;
+  planCode?: string; // PayFlex plan_code for purchase
+  peyflexNetwork?: string; // PayFlex network ID for purchase
 }
 
 export interface AirtimePlan {
