@@ -89,6 +89,7 @@ export function AdminTransactions({ searchQuery }: AdminTransactionsProps) {
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground">Phone</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground">Network</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground">Amount</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground">Payment</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground">Status</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground">Date</th>
               </tr>
@@ -110,6 +111,9 @@ export function AdminTransactions({ searchQuery }: AdminTransactionsProps) {
                       <span className="text-sm font-semibold">{formatPrice(tx.amount)}</span>
                     </td>
                     <td className="p-4">
+                      <span className="text-sm capitalize">{tx.paymentMethod?.replace('_', ' ') || 'N/A'}</span>
+                    </td>
+                    <td className="p-4">
                       <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
                         {getStatusIcon(tx.status)}
                         {tx.status}
@@ -129,7 +133,7 @@ export function AdminTransactions({ searchQuery }: AdminTransactionsProps) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     {searchQuery ? 'No transactions match your search' : 'No transactions yet'}
                   </td>
                 </tr>
