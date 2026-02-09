@@ -1,1 +1,4 @@
 project_id = "hdhnxjjnkordeqfjecjk"
+
+[functions.peyflex-proxy]
+verify_jwt = false
